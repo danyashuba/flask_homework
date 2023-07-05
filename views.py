@@ -1,4 +1,4 @@
-from flask import abort, request, redirect
+from flask import abort, request, redirect, render_template, session, url_for
 import string
 from random import randint, choice
 from app import app
@@ -10,22 +10,7 @@ books = []
 
 @app.get('/')
 def links():
-    return f'''
-    <h1>LINKS:</h1>
-    <ul>
-        <li>users: <a href=http://127.0.0.1:5000/users>http://127.0.0.1:5000/users</a></li>
-        <li>books: <a href=http://127.0.0.1:5000/books>http://127.0.0.1:5000/books</a></li>
-        <li>login: <a href=http://127.0.0.1:5000/login>http://127.0.0.1:5000/login</a></li>
-        <li>params: <a href=http://127.0.0.1:5000/params>http://127.0.0.1:5000/params</a></li>
-    </ul>
-    <table>
-        <tr>
-            <th>endpoint</th>
-            <th>link</th>
-            <th>purpose</th>
-        </tr>
-    </table>
-    '''
+    return render_template('tasks/main_page.html'), 200
 
 
 @app.route('/users', methods=['GET'])
@@ -37,17 +22,7 @@ def users_list(count=random_value):
     while k <= count:
         users.append(''.join(choice(string.ascii_lowercase) for _ in range(randint(1, 8))))
         k += 1
-    user_render = ''.join([
-        f"<li>{user}</li>"
-        for user in users
-    ])
-    response = f'''
-    <h1>Users</h1
-    <ul>
-        {user_render}
-    </ul>
-    '''
-    return response, 200
+    return render_template('tasks/users.html', users=users), 200
 
 
 @app.route('/books', methods=['GET'])
@@ -59,27 +34,14 @@ def books_list(count=random_value):
     while k <= count:
         books.append(''.join(choice(string.ascii_lowercase) for _ in range(randint(1, 8))))
         k += 1
-    book_render = ''.join([
-        f"<li>{book}</li>"
-        for book in books
-    ])
-    response = f'''
-    <h1>BOOKS</h1>
-    <ul>
-        {book_render}
-    </ul>
-    '''
-    return response, 200
+    return render_template('tasks/books.html', books=books), 200
 
 
 @app.get('/users/<user_id>')
 def user_details(user_id):
     if int(user_id) % 2:
         abort(404, 'Not Found')
-    response = f'''
-    <h1>{users[int(user_id) - 1]}</h1>
-    '''
-    return response, 200
+    return render_template('tasks/user_id.html', user=users[int(user_id) - 1]), 200
 
 
 @app.get('/books/<book_name>')
@@ -87,49 +49,26 @@ def transform_name(book_name):
     lower_books = map(lambda word: word.lower(), books)
     if str(book_name) in lower_books:
         book_name = book_name.capitalize()
-        response = f'''
-        <h1>The name of the book is: {book_name}</h1>
-        '''
-        return response, 200
+        return render_template('tasks/book_id.html', book=book_name), 200
     abort(404, 'There is no such book')
+
+
+@app.get('/logout')
+def logout():
+    session.pop('username')
+    return redirect(url_for('login'))
 
 
 @app.route('/params', methods=['GET'])
 def table():
     query_params = request.values.items()
-    table = f'''
-    <table>
-        <tr>
-            <th>key</th>
-            <th>value</th>
-        </tr>
-    </table>
-    '''
-    for key, value in query_params:
-        response = f'''
-        <table>
-            <tr>
-                <th>{key}</th>
-                <th>{value}</th>
-            </tr>
-        </table>
-        '''
-        table += response
-    return table, 200
+    return render_template('tasks/params.html', dict=query_params), 200
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'GET':
-        return f'''
-        <form method="POST" action="/login">
-            <label for="username">username:</label>
-            <input name="username" id="username"><br><br>
-            <label for="password">password:</label>
-            <input name="password" id="password"><br><br>
-            <input type="submit" value="Submit">
-        </form>
-        '''
+        return render_template('tasks/login.html')
     elif request.method == 'POST':
         username = str(request.form['username'])
         password = str(request.form['password'])
@@ -140,6 +79,7 @@ def login():
                 if symbol.isupper():
                     for digit in password:
                         if digit.isdigit():
+                            session['username'] = username
                             return redirect('/users')
                         else:
                             continue

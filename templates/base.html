@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base_styles.css') }}">
+    <title>
+        {% block title %}
+            Title
+        {% endblock %}
+    </title>
+</head>
+<body>
+
+    {% block necessity %}
+    {% if 'username' in session %}
+        <div>
+            <p>Hello, {{ session['username'] }}!</p>
+            <input type="button" onclick="window.location.href='{{ url_for('logout') }}'" value="LOGOUT"/>
+        </div>
+    {% else %}
+        <a href="{{ url_for('login') }}">login</a>
+    {% endif %}
+    {% endblock %}
+
+    {% block main %}
+        <h1>Special code goes here</h1>
+    {% endblock %}
+
+</body>
+</html>
