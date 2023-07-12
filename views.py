@@ -1,6 +1,5 @@
 from flask import abort, request, redirect, render_template, session, url_for
-import string
-from random import randint, choice
+from random import randint
 from app import app, db
 from models import Users, Books, Purchases
 
@@ -14,17 +13,30 @@ def links():
     return render_template('tasks/main_page.html'), 200
 
 
-@app.get('/users')
-def users_list():
-    query = db.select(Users.user)
+@app.route('/users', methods=['GET'])
+def users_list(count=5):
+    params = request.values.items()
+    for key, value in params:
+        count = int(value)
+    query = db.select(Users.user).order_by(Users.user).limit(count)
     users = db.session.execute(query).scalars()
     return render_template('tasks/users.html', users=users)
 
 
 @app.route('/books', methods=['GET'])
 def books_list():
-    query = db.select(Books.book)
-    books = db.session.execute(query).scalars()
+    params = request.values.items()
+    for key, value in params:
+        count = int(value)
+    if not params:
+        for key, value in params:
+            count = int(value)
+        query = db.select(Books.book).order_by(Books.book).limit(count)
+        books = db.session.execute(query).scalars()
+
+    else:
+        query = db.select(Books.book).order_by(Books.book)
+        books = db.session.execute(query).scalars()
     return render_template('tasks/books.html', books=books), 200
 
 
@@ -78,6 +90,21 @@ def logout():
 def table():
     query_params = request.values.items()
     return render_template('tasks/params.html', dict=query_params), 200
+
+
+@app.route('/application', methods=['GET', 'POST'])
+def add_elements():
+    if request.method == 'GET':
+        return render_template('tasks/application.html')
+    elif request.method == 'POST':
+        user = str(request.form['user'])
+        book = str(request.form['book'])
+        new_user = Users(user=user)
+        new_book = Books(book=book)
+        db.session.add(new_user)
+        db.session.add(new_book)
+        db.session.commit()
+        return redirect('/users')
 
 
 @app.route('/login', methods=['GET', 'POST'])

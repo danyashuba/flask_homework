@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    tables
+{% endblock %}
+{% block main %}
+    <table>
+        <thead>
+        <tr>
+            <th>Key</th>
+            <th>Value</th>
+        </tr>
+        </thead>
+        <tbody>
+            <tr>
+                {% for key, value in dict %}
+                    <td>{{ key }}</td>
+                    <td>{{ value }}</td>
+                {% endfor %}
+
+            </tr>
+        </tbody>
+    </table>
+{% endblock %}
