@@ -1,7 +1,7 @@
-from flask import abort, request, redirect
-import string
-from random import randint, choice
-from app import app
+from flask import abort, request, redirect, render_template, session, url_for
+from random import randint
+from app import app, db
+from models import Users, Books, Purchases
 
 random_value = randint(1, 1000)
 users = []
@@ -10,126 +10,107 @@ books = []
 
 @app.get('/')
 def links():
-    return f'''
-    <h1>LINKS:</h1>
-    <ul>
-        <li>users: <a href=http://127.0.0.1:5000/users>http://127.0.0.1:5000/users</a></li>
-        <li>books: <a href=http://127.0.0.1:5000/books>http://127.0.0.1:5000/books</a></li>
-        <li>login: <a href=http://127.0.0.1:5000/login>http://127.0.0.1:5000/login</a></li>
-        <li>params: <a href=http://127.0.0.1:5000/params>http://127.0.0.1:5000/params</a></li>
-    </ul>
-    <table>
-        <tr>
-            <th>endpoint</th>
-            <th>link</th>
-            <th>purpose</th>
-        </tr>
-    </table>
-    '''
+    return render_template('tasks/main_page.html'), 200
 
 
 @app.route('/users', methods=['GET'])
-def users_list(count=random_value):
+def users_list(count=5):
     params = request.values.items()
     for key, value in params:
         count = int(value)
-    k = 1
-    while k <= count:
-        users.append(''.join(choice(string.ascii_lowercase) for _ in range(randint(1, 8))))
-        k += 1
-    user_render = ''.join([
-        f"<li>{user}</li>"
-        for user in users
-    ])
-    response = f'''
-    <h1>Users</h1
-    <ul>
-        {user_render}
-    </ul>
-    '''
-    return response, 200
+    query = db.select(Users.user).order_by(Users.user).limit(count)
+    users = db.session.execute(query).scalars()
+    return render_template('tasks/users.html', users=users)
 
 
 @app.route('/books', methods=['GET'])
-def books_list(count=random_value):
+def books_list():
     params = request.values.items()
     for key, value in params:
         count = int(value)
-    k = 1
-    while k <= count:
-        books.append(''.join(choice(string.ascii_lowercase) for _ in range(randint(1, 8))))
-        k += 1
-    book_render = ''.join([
-        f"<li>{book}</li>"
-        for book in books
-    ])
-    response = f'''
-    <h1>BOOKS</h1>
-    <ul>
-        {book_render}
-    </ul>
-    '''
-    return response, 200
+    if not params:
+        for key, value in params:
+            count = int(value)
+        query = db.select(Books.book).order_by(Books.book).limit(count)
+        books = db.session.execute(query).scalars()
+
+    else:
+        query = db.select(Books.book).order_by(Books.book)
+        books = db.session.execute(query).scalars()
+    return render_template('tasks/books.html', books=books), 200
 
 
 @app.get('/users/<user_id>')
 def user_details(user_id):
     if int(user_id) % 2:
         abort(404, 'Not Found')
-    response = f'''
-    <h1>{users[int(user_id) - 1]}</h1>
-    '''
-    return response, 200
+    query = db.select(Users.user)
+    user = db.session.execute(query).scalars().fetchall()
+    return render_template('tasks/user_id.html', user=user[int(user_id) - 1]), 200
 
 
-@app.get('/books/<book_name>')
-def transform_name(book_name):
-    lower_books = map(lambda word: word.lower(), books)
-    if str(book_name) in lower_books:
-        book_name = book_name.capitalize()
-        response = f'''
-        <h1>The name of the book is: {book_name}</h1>
-        '''
-        return response, 200
-    abort(404, 'There is no such book')
+@app.get('/books/<book_id>')
+def transform_name(book_id):
+    query = db.select(Books.book)
+    books = db.session.execute(query).fetchall()
+    if book_id > len(books):
+        abort(404, 'Not Found')
+    return render_template('tasks/book_id.html', book=books[int(book_id) - 1]), 200
+
+
+@app.get('/purchases')
+def purchases():
+    query_book = db.select(Purchases.purchased_book)
+    query_owner = db.select(Purchases.owner)
+    purchased_books = db.session.execute(query_book).fetchall()
+    owners = db.session.execute(query_owner).fetchall()
+    return render_template('tasks/purchases.html', owners=owners, books=purchased_books)
+
+
+@app.get('/purchases/<purchase_id>')
+def owner_info(purchase_id):
+    query_book = db.select(Purchases.purchased_book)
+    query_owner = db.select(Purchases.owner)
+    purchased_books = db.session.execute(query_book).fetchall()
+    owners = db.session.execute(query_owner).fetchall()
+    if int(purchase_id) > len(owners):
+        abort(404)
+    return render_template('tasks/purchases_id.html',
+                           owner=owners[int(purchase_id) - 1],
+                           book=purchased_books[int(purchase_id) - 1])
+
+
+@app.get('/logout')
+def logout():
+    session.pop('username')
+    return redirect(url_for('login'))
 
 
 @app.route('/params', methods=['GET'])
 def table():
     query_params = request.values.items()
-    table = f'''
-    <table>
-        <tr>
-            <th>key</th>
-            <th>value</th>
-        </tr>
-    </table>
-    '''
-    for key, value in query_params:
-        response = f'''
-        <table>
-            <tr>
-                <th>{key}</th>
-                <th>{value}</th>
-            </tr>
-        </table>
-        '''
-        table += response
-    return table, 200
+    return render_template('tasks/params.html', dict=query_params), 200
+
+
+@app.route('/application', methods=['GET', 'POST'])
+def add_elements():
+    if request.method == 'GET':
+        return render_template('tasks/application.html')
+    elif request.method == 'POST':
+        user = str(request.form['user'])
+        book = str(request.form['book'])
+        new_user = Users(user=user)
+        new_book = Books(book=book)
+        db.session.add(new_user)
+        db.session.add(new_book)
+        db.session.commit()
+        return redirect('/users')
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'GET':
-        return f'''
-        <form method="POST" action="/login">
-            <label for="username">username:</label>
-            <input name="username" id="username"><br><br>
-            <label for="password">password:</label>
-            <input name="password" id="password"><br><br>
-            <input type="submit" value="Submit">
-        </form>
-        '''
+        return render_template('tasks/login.html')
     elif request.method == 'POST':
         username = str(request.form['username'])
         password = str(request.form['password'])
@@ -140,6 +121,7 @@ def login():
                 if symbol.isupper():
                     for digit in password:
                         if digit.isdigit():
+                            session['username'] = username
                             return redirect('/users')
                         else:
                             continue

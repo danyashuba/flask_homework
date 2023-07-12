@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    login
+{% endblock %}
+    {% block necessity %}
+    <p>Here you can add some information to the database</p>
+    {% endblock %}
+{% block main %}
+    <form method="POST" action="/application">
+    <label for="user">user:</label>
+    <input name="user" id="user"><br><br>
+    <label for="book">book:</label>
+    <input name="book" id="book"><br><br>
+    <input type="submit" value="Submit">
+    </form>
+{% endblock %}

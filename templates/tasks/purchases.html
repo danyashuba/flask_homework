@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    books
+{% endblock %}
+
+{% block main %}
+    <h1>PURCHASED BOOKS: </h1>
+    {% for book in books %}
+    {% for owner in owners %}
+        <li>{{ book }}</li>
+        <li>{{ owner }}</li>
+    {% endfor %}
+    {% endfor %}
+{% endblock %}
