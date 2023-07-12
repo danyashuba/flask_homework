@@ -22,5 +22,5 @@ class Books(db.Model):
 
 class Purchases(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    owner = db.Column(db.String, unique=False, nullable=False)
-    purchased_book = db.Column(db.String, unique=False, nullable=False)
+    owner = db.Column(db.String, db.ForeignKey('Users.user'), unique=False, nullable=False)
+    purchased_book = db.Column(db.String, db.ForeignKey('Books.book'), unique=False, nullable=False)
