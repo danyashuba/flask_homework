@@ -31,7 +31,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'users.apps.TasksConfig'
+    'users.apps.TasksConfig',
+    'book.apps.BookConfig',
+    'purchase.apps.PurchaseConfig'
 ]
 
 MIDDLEWARE = [
@@ -128,3 +130,6 @@ DEFAULT_AUTO_FIELD = os.getenv('DEFAULT_AUTO_FIELD')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 
+AUTH_USER_MODEL = 'users.User'
+AUTH_BOOK_MODEL = 'book.Book'
+AUTH_PURCHASE_MODEL = 'purchase.Purchase'
